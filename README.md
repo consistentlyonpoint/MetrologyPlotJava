@@ -10,6 +10,6 @@ Plot metrology data as wafer map via simulation of Real-Fab data collection metr
 ### Approach
 * Starting point: (x, y, z) values
   - (x, y) coordinates + z values
-  - z values represent metrology data 
+  - z values represent metrology data
 * Additional X, Y points generated (number of points is an input parameter to scenario).
 * Z values generated per (X, Y) point via interpolation function.
