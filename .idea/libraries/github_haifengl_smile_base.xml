@@ -1,0 +1,27 @@
+<component name="libraryTable">
+  <library name="github.haifengl.smile.base" type="repository">
+    <properties maven-id="com.github.haifengl:smile-base:3.1.1" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/smile-base-3.1.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/slf4j-api-2.0.12.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/javacpp-1.5.10-linux-x86_64.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/javacpp-1.5.10-windows-x86_64.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/javacpp-1.5.10-macosx-x86_64.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/javacpp-1.5.10-macosx-arm64.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/openblas-0.3.26-1.5.10-linux-x86_64.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/javacpp-1.5.10.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/openblas-0.3.26-1.5.10-windows-x86_64.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/openblas-0.3.26-1.5.10-macosx-x86_64.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/openblas-0.3.26-1.5.10-macosx-arm64.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/arpack-ng-3.9.1-1.5.10.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/openblas-0.3.26-1.5.10.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/arpack-ng-3.9.1-1.5.10-linux-x86_64.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/arpack-ng-3.9.1-1.5.10-windows-x86_64.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/arpack-ng-3.9.1-1.5.10-macosx-x86_64.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/parso-2.0.14.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons-csv-1.10.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

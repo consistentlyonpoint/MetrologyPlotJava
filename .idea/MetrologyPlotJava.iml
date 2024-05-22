@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_11" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/test/java" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="jdk" jdkName="11" jdkType="JavaSDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" exported="" name="apache.commons.csv" level="application" />
+    <orderEntry type="library" exported="" name="apache.commons.math3" level="application" />
+    <orderEntry type="library" exported="" name="jfree.jcommon" level="application" />
+    <orderEntry type="library" exported="" name="batik.awt.util" level="application" />
+    <orderEntry type="library" exported="" name="batik.dom" level="application" />
+    <orderEntry type="library" exported="" name="batik.svggen" level="application" />
+    <orderEntry type="library" exported="" name="batik.util" level="application" />
+    <orderEntry type="library" exported="" name="batik.xml" level="application" />
+    <orderEntry type="library" exported="" name="jfree.jfreechart" level="application" />
+    <orderEntry type="library" exported="" name="apache.commons.lang3" level="application" />
+    <orderEntry type="library" exported="" name="bytedeco.javacpp" level="application" />
+    <orderEntry type="library" exported="" name="bytedeco.openblas" level="application" />
+    <orderEntry type="library" exported="" name="bytedeco.javacpp.presets.openblas.platform" level="application" />
+    <orderEntry type="library" exported="" name="bytedeco.javacpp.presets.openblas" level="application" />
+    <orderEntry type="library" exported="" name="nd4j.native.platform" level="application" />
+    <orderEntry type="library" exported="" name="slf4j.api" level="application" />
+    <orderEntry type="library" exported="" name="slf4j.simple" level="application" />
+    <orderEntry type="library" exported="" name="github.haifengl.smile.base" level="application" />
+  </component>
+</module>

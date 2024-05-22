@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="batik.svggen" type="repository">
+    <properties maven-id="batik:batik-svggen:1.7" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/batik-svggen-1.7.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

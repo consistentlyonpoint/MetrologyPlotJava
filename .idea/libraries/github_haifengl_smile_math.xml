@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="github.haifengl.smile.math" type="repository">
+    <properties maven-id="com.github.haifengl:smile-math:2.6.0" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/smile-math-2.6.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/slf4j-api-1.7.30.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
