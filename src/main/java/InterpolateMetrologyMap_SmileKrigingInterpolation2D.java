@@ -1,7 +1,5 @@
 import org.apache.batik.dom.GenericDOMImplementation;
 import org.apache.batik.svggen.SVGGraphics2D;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVRecord;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
@@ -28,8 +26,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.GeneralPath;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
@@ -37,9 +33,11 @@ import java.util.*;
 //import org.python.apache.commons.compress.utils.
 
 public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
-    public static String filename ="SampleMetrologyTHK_v1.csv";
-    HashMap<String, List<Double>> XYZ = new HashMap<String, List<Double>>();
-    HashMap<String, List<Double>> XYCircleZ = new HashMap<String, List<Double>>();
+//    public static String filename ="SampleMetrologyTHK_v1.csv";
+    public static String[] filenames = new String[]{"SampleMetrologyTHK_v1.csv"
+            , "SampleMetrologyTHK_v2.csv", "SampleMetrologyTHK_v3.csv", "SampleMetrologyTHK_v4.csv"};
+    public HashMap<String, List<Double>> XYZ = new HashMap<String, List<Double>>();
+    public HashMap<String, List<Double>> XYCircleZ = new HashMap<String, List<Double>>();
     /** name of plot title. */
     public String chartTitle;
     /** name of file title. */
@@ -579,123 +577,6 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
         return zInter;
     }
     //
-    public static HashMap MakeHashMap() {
-        HashMap<String, HashMap<String, List>> MsrmtDict = new HashMap<String, HashMap<String, List>>();
-        try {
-            Reader reader = Files.newBufferedReader(Paths.get(filename));
-            //read the file
-            Iterable<CSVRecord> records = CSVFormat.DEFAULT.withHeader("WAFER_ID", "SITE_ID", "X_COORD", "Y_COORD"
-                    , "MEASUREMENT_NAME", "MEASUREMENT_VALUE").parse(reader);
-            //
-            int CountRow = 0;
-            List<String> MsrmtNames = new ArrayList<>();
-            MsrmtDict = new HashMap<String, HashMap<String, List>>();
-            int WaferIdIndex = 0;
-            int SiteIdIndex = 0;
-            int XCoordIndex = 0;
-            int YCoordIndex = 0;
-            int MeasurementNameIndex = 0;
-            int MeasurementValueIndex = 0;
-            //
-            for (CSVRecord record : records) {
-                int RecordLength = record.size();
-                HashMap<String, List> TempMsrmtDict = new HashMap<>();
-                List<Integer> TempSites = new ArrayList<>();
-                List<Double> TempXCoords = new ArrayList<>();
-                List<Double> TempYCoords = new ArrayList<>();
-                List<Double> TempMeasurementValues = new ArrayList<>();
-                if (CountRow == 0) {
-                    for (int r = 0; r < RecordLength; r++) {
-                        switch (record.get(r)) {
-                            case "msrmnt_waferId":
-                                WaferIdIndex = r;
-                                break;
-                            case "msrmnt_siteId":
-                                SiteIdIndex = r;
-                                break;
-                            case "msrmnt_xcoord":
-                                XCoordIndex = r;
-                                break;
-                            case "msrmnt_ycoord":
-                                YCoordIndex = r;
-                                break;
-                            case "msrmnt_type":
-                                MeasurementNameIndex = r;
-                                break;
-                            case "msrmnt_val":
-                                MeasurementValueIndex = r;
-                                break;
-                        }
-                    }
-                    CountRow++;
-                } else if (CountRow == 1) {
-                    List<String> TempMeasurementNames = new ArrayList<>(MsrmtNames);
-                    int TempSite = Integer.parseInt(record.get(SiteIdIndex));
-                    Double TempXCoord = Double.valueOf(record.get(XCoordIndex));
-                    Double TempYCoord = Double.valueOf(record.get(YCoordIndex));
-                    String TempMeasurementName = record.get(MeasurementNameIndex);
-                    Double TempMeasurementValue = Double.valueOf(record.get(MeasurementValueIndex));
-                    //
-                    TempSites.add(TempSite);
-                    TempXCoords.add(TempXCoord);
-                    TempYCoords.add(TempYCoord);
-                    TempMeasurementNames.add(TempMeasurementName);
-                    TempMeasurementValues.add(TempMeasurementValue);
-                    //
-                    Set<String> TempMsrValSet = new HashSet<String>(TempMeasurementNames);
-                    MsrmtNames = new ArrayList<>(TempMsrValSet);
-                    //
-                    TempMsrmtDict.put("SITES", TempSites);
-                    TempMsrmtDict.put("X", TempXCoords);
-                    TempMsrmtDict.put("Y", TempYCoords);
-                    TempMsrmtDict.put("Z", TempMeasurementValues);
-                    MsrmtDict.put(record.get(MeasurementNameIndex), TempMsrmtDict);
-                    CountRow++;
-                } else if (MsrmtNames.contains(record.get(MeasurementNameIndex))) {
-                    int TempSite = Integer.parseInt(record.get(SiteIdIndex));
-                    Double TempXCoord = Double.valueOf(record.get(XCoordIndex));
-                    Double TempYCoord = Double.valueOf(record.get(YCoordIndex));
-                    String TempMeasurementName = record.get(MeasurementNameIndex);
-                    Double TempMeasurementValue = Double.valueOf(record.get(MeasurementValueIndex));
-                    //
-                    MsrmtDict.get(TempMeasurementName).get("SITES").add(TempSite);
-                    MsrmtDict.get(TempMeasurementName).get("X").add(TempXCoord);
-                    MsrmtDict.get(TempMeasurementName).get("Y").add(TempYCoord);
-                    MsrmtDict.get(TempMeasurementName).get("Z").add(TempMeasurementValue);
-                    //
-                    CountRow++;
-                } else if (!MsrmtNames.contains(record.get(MeasurementNameIndex))) {
-                    List<String> TempMeasurementNames = new ArrayList<>(MsrmtNames);
-                    int TempSite = Integer.parseInt(record.get(SiteIdIndex));
-                    Double TempXCoord = Double.valueOf(record.get(XCoordIndex));
-                    Double TempYCoord = Double.valueOf(record.get(YCoordIndex));
-                    String TempMeasurementName = record.get(MeasurementNameIndex);
-                    Double TempMeasurementValue = Double.valueOf(record.get(MeasurementValueIndex));
-                    //
-                    TempSites.add(TempSite);
-                    TempXCoords.add(TempXCoord);
-                    TempYCoords.add(TempYCoord);
-                    TempMeasurementNames.add(TempMeasurementName);
-                    TempMeasurementValues.add(TempMeasurementValue);
-                    //
-                    Set<String> TempMsrValSet = new HashSet<String>(TempMeasurementNames);
-                    MsrmtNames = new ArrayList<>(TempMsrValSet);
-                    TempMsrmtDict.put("SITES", TempSites);
-                    TempMsrmtDict.put("X", TempXCoords);
-                    TempMsrmtDict.put("Y", TempYCoords);
-                    TempMsrmtDict.put("Z", TempMeasurementValues);
-                    MsrmtDict.put(record.get(MeasurementNameIndex), TempMsrmtDict);
-                    CountRow++;
-                }
-            }
-            reader.close();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        return MsrmtDict;
-    }
-
-    //
     public static HashMap<String, List<Double>> MakeInterpArray() {
         HashMap<String, List<Double>> XYZHash = new HashMap<String, List<Double>>();
         long startTime2a = System.currentTimeMillis();
@@ -891,55 +772,66 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
         //System.out.println(Arrays.toString(XYCoords));
     }
     public static void main(String[] args) throws IOException {
-        long startTimeAll = System.currentTimeMillis();
-        long startTime1 = System.currentTimeMillis();
-        HashMap<String, HashMap<String, List<Double>>> MsrmntHashMap = MakeHashMap();
-        long endTime1 = System.currentTimeMillis();
-        System.out.println("part1: the HashMap from CSV \ntook:" + (endTime1 - startTime1) + " milliseconds");
-        //
-//        System.out.println("this is the first data plot\n" + MsrmntHashMap);
-        XClist = MsrmntHashMap.get("THK").get("X");
-        YClist = MsrmntHashMap.get("THK").get("Y");
-        ZVlist = MsrmntHashMap.get("THK").get("Z");
-        String ContourDatasetStyle = "XYRenderer";
-        //String[] fileExts = {".png", ".svg"};
-        String fileExts = ".svg";
+        for (String s : filenames) {
+            long startTimeAll = System.currentTimeMillis();
+            long startTime1 = System.currentTimeMillis();
+//            HashMap<String, HashMap<String, List<Double>>> MsrmntHashMap = MetrologyCSVReader.csvToHashMap(filename);
+            HashMap<String, HashMap<String, List<Double>>> MsrmntHashMap = MetrologyCSVReader.csvToHashMap(s);
+            long endTime1 = System.currentTimeMillis();
+            System.out.println("part1: the HashMap from CSV \ntook:" + (endTime1 - startTime1) + " milliseconds");
+            //
+            //        System.out.println("this is the first data plot\n" + MsrmntHashMap);
+            XClist = MsrmntHashMap.get("THK").get("X");
+            YClist = MsrmntHashMap.get("THK").get("Y");
+            ZVlist = MsrmntHashMap.get("THK").get("Z");
+            String ContourDatasetStyle = "XYRenderer";
+            //String[] fileExts = {".png", ".svg"};
+            String fileExts = ".svg";
 
-        //Create new points via interpolation
-        long startTime2 = System.currentTimeMillis();
-        HashMap<String, List<Double>> XYZHash = MakeInterpArray();
-        long endTime2 = System.currentTimeMillis();
-        System.out.println("part2: Creating the Interpolated Data \ntook:" + (endTime2 - startTime2) + " milliseconds");
+            //Create new points via interpolation
+            long startTime2 = System.currentTimeMillis();
+            HashMap<String, List<Double>> XYZHash = MakeInterpArray();
+            long endTime2 = System.currentTimeMillis();
+            System.out.println("part2: Creating the Interpolated Data \ntook:" + (endTime2 - startTime2) + " milliseconds");
 
-        //for (String s : fileExts) {
-        StringBuilder PlotSaveToDestination = new StringBuilder();
-        String WaferMapTitle = "WaferTHK_XYZRender_Smile_KrigingInterpolation2D" + "_InterpPts:" + (int) Math.pow(sqrtR + 1, 2);
-        //
-        String filenameTimeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss")
-                .format(new Date());
-//        String mainFolder = "C:\\Users\\tpizzone\\OneDrive - Eyelit Inc\\Code\\Java" +
-//                "\\SmileImplementation\\GenerateMap";
-        String subFolder = "src\\main\\java";
-        //String fileType = ".png";
-        String joinFolder = "\\";
-//        PlotSaveToDestination.append(mainFolder).append(joinFolder).append(subFolder)
-//                .append(joinFolder);
-//        PlotSaveToDestination.append(subFolder)
-//                .append(joinFolder);
-        PlotSaveToDestination.append("WaferTHK_XYZRender_Smile_KrigingInterpolation2D").append(ContourDatasetStyle)
-                .append("_NumPts-")
-                .append((int) Math.pow(sqrtR + 1, 2))
-                .append("_").append(filenameTimeStamp);
-//            PlotSaveToDestination.append(fileType);
-        //PlotSaveToDestination.append(s);
-        PlotSaveToDestination.append(fileExts);
-        //new InterpolateMetrologyMapClassic(WaferMapTitle, PlotSaveToDestination.toString(), XYZHash, sqrtR, s);
-        //
-        long startTime3 = System.currentTimeMillis();
-        new InterpolateMetrologyMap_SmileKrigingInterpolation2D(WaferMapTitle, PlotSaveToDestination.toString(), XYZHash, sqrtR, fileExts);
-        long endTime3 = System.currentTimeMillis();
-        System.out.println("part3: Make the Plot \ntook:" + (endTime3 - startTime3) + " milliseconds");
-        long endTimeAll = System.currentTimeMillis();
-        System.out.println("Total: The Smile-KrigingInterpolation2D WHOLE thing \ntook:" + (endTimeAll - startTimeAll) + " milliseconds");
+            //for (String s : fileExts) {
+            StringBuilder PlotSaveToDestination = new StringBuilder();
+            String WaferMapTitle = "WaferTHK_XYZRender_Smile_KrigingInterpolation2D" + "_InterpPts:" + (int) Math.pow(sqrtR + 1, 2);
+            //
+            String filenameTimeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss")
+                    .format(new Date());
+            //        String mainFolder = "C:\\Users\\tpizzone\\OneDrive - Eyelit Inc\\Code\\Java" +
+            //                "\\SmileImplementation\\GenerateMap";
+            String mainFolder = "GeneratedMaps\\";
+            //        String subFolder = "src\\main\\java";
+            //String fileType = ".png";
+            //        String joinFolder = "\\";
+            //
+            File directory = new File(mainFolder);
+            if (!directory.exists()) {
+                directory.mkdir();
+            }
+            //
+            PlotSaveToDestination.append(mainFolder);
+            //        PlotSaveToDestination.append(mainFolder).append(joinFolder).append(subFolder)
+            //                .append(joinFolder);
+            //        PlotSaveToDestination.append(subFolder)
+            //                .append(joinFolder);
+            PlotSaveToDestination.append("WaferTHK_XYZRender_Smile_KrigingInterpolation2D").append(ContourDatasetStyle)
+                    .append("_NumPts-")
+                    .append((int) Math.pow(sqrtR + 1, 2))
+                    .append("_").append(filenameTimeStamp);
+            //            PlotSaveToDestination.append(fileType);
+            //PlotSaveToDestination.append(s);
+            PlotSaveToDestination.append(fileExts);
+            //new InterpolateMetrologyMapClassic(WaferMapTitle, PlotSaveToDestination.toString(), XYZHash, sqrtR, s);
+            //
+            long startTime3 = System.currentTimeMillis();
+            new InterpolateMetrologyMap_SmileKrigingInterpolation2D(WaferMapTitle, PlotSaveToDestination.toString(), XYZHash, sqrtR, fileExts);
+            long endTime3 = System.currentTimeMillis();
+            System.out.println("part3: Make the Plot \ntook:" + (endTime3 - startTime3) + " milliseconds");
+            long endTimeAll = System.currentTimeMillis();
+            System.out.println("Total: The Smile-KrigingInterpolation2D WHOLE thing \ntook:" + (endTimeAll - startTimeAll) + " milliseconds");
+        }
     }
 }

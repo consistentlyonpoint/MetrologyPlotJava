@@ -24,6 +24,7 @@
       <root url="jar://$PROJECT_DIR$/lib/snakeyaml-1.12.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/stax2-api-3.1.4.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/joda-time-2.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/lombok-1.16.16.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/nd4j-context-0.9.1.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/nd4j-common-0.9.1.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/commons-io-2.4.jar!/" />

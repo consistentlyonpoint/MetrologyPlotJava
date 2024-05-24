@@ -18,6 +18,7 @@
     <orderEntry type="library" exported="" name="batik.util" level="application" />
     <orderEntry type="library" exported="" name="batik.xml" level="application" />
     <orderEntry type="library" exported="" name="jfree.jfreechart" level="application" />
+    <orderEntry type="library" exported="" name="jfree.jfreesvg" level="application" />
     <orderEntry type="library" exported="" name="apache.commons.lang3" level="application" />
     <orderEntry type="library" exported="" name="bytedeco.javacpp" level="application" />
     <orderEntry type="library" exported="" name="bytedeco.openblas" level="application" />

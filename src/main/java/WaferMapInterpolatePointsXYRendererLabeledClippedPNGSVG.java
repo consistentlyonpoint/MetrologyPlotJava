@@ -2,13 +2,16 @@ import org.apache.batik.dom.GenericDOMImplementation;
 import org.apache.batik.svggen.SVGGraphics2D;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.math3.analysis.MultivariateFunction;
+import org.apache.commons.math3.analysis.interpolation.MicrosphereInterpolator;
+import org.apache.commons.math3.analysis.interpolation.MultivariateInterpolator;
 import org.jfree.chart.ChartPanel;
-import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.annotations.XYShapeAnnotation;
 import org.jfree.chart.annotations.XYTextAnnotation;
 import org.jfree.chart.axis.AxisLocation;
 import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.block.BlockBorder;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.LookupPaintScale;
@@ -22,7 +25,6 @@ import org.jfree.data.general.DatasetGroup;
 import org.jfree.data.xy.XYZDataset;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
-import smile.interpolation.ShepardInterpolation2D;
 
 import javax.swing.*;
 import java.awt.*;
@@ -34,21 +36,18 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
 
-//import org.python.apache.commons.compress.utils.
-
-public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
-    protected static String[] filenames = new String[]{"SampleMetrologyTHK_v1.csv"
-            , "SampleMetrologyTHK_v2.csv", "SampleMetrologyTHK_v3.csv", "SampleMetrologyTHK_v4.csv"};
-//    protected static String filename1 ="SampleMetrologyTHK_v1.csv";
-//    protected static String filename2 ="SampleMetrologyTHK_v2.csv";
-//    protected static String filename3 ="SampleMetrologyTHK_v3.csv";
-//    protected static String filename4 ="SampleMetrologyTHK_v4.csv";
+public class WaferMapInterpolatePointsXYRendererLabeledClippedPNGSVG {
+    protected static String filename ="Sample Data_Multi-Measurement Tests_v2.csv";
     HashMap<String, List<Double>> XYZ = new HashMap<String, List<Double>>();
     HashMap<String, List<Double>> XYCircleZ = new HashMap<String, List<Double>>();
     /** name of plot title. */
     protected String chartTitle;
     /** name of file title. */
     protected String SaveTo;
+    /** The x-axis. */
+    protected ValueAxis xAxis = null;
+    /** The y-axis. */
+    protected NumberAxis yAxis = null;
     /** Max of x-axis. */
     protected double xMax;
     /** Min of x-axis. */
@@ -77,7 +76,17 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
     protected double centerX;
     /** Center y-axis. */
     protected double centerY;
-    protected static int sqrtR = 105;
+    /** Temp data storage. */
+    protected double[] tmpDoubleY = null;
+    /** Temp data storage. */
+    protected double[] tmpDoubleX = null;
+    /** Temp data storage. */
+    protected double[] tmpDoubleZ = null;
+    /** X outline. */
+    protected double[] xOutline = null;
+    /** Y outline. */
+    protected double[] yOutline = null;
+    protected static int sqrtR = 60;
     protected int[] resolution = {1100, 900};
     /** Number of x intervals. */
     final int numX = resolution[0];//800; //resolution[0];
@@ -92,6 +101,10 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
     protected static double[] XCoordsSorted;
     protected static double[] YCoordsSorted;
     protected static double[] ZValsSorted;
+    //
+    protected static double[] MultiInterpolationXY;
+    protected static double MultiInterpolatedZ;
+    protected static double[][] initXYCoords;
     protected static double[][] XYCoords;
     protected static double[] XCoordsInterp;
     protected static double[] YCoordsInterp;
@@ -102,45 +115,47 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
     protected static List<Double> XCoordsDoubleInterpFull;
     protected static List<Double> YCoordsDoubleInterpFull;
     protected static String fileExtension;
-    protected static int interpolatedPointCount;
-    protected static double ZInterp;
-    //
-    protected static double[] xyPoint;
     /**
      *This constructor takes 2 inputs.
      * @param title the frame title.
      * @param XYZ hashmap values
      * @param ptSq int
      */
-    public InterpolateMetrologyMap_SmileShepardInterpolation2D(String title, String fileTitle, HashMap XYZ, int ptSq, String ext)
+    public WaferMapInterpolatePointsXYRendererLabeledClippedPNGSVG(String title, String fileTitle, HashMap XYZ, int ptSq, String ext)
             throws IOException {
 
         this.chartTitle = title;
 
         this.SaveTo = fileTitle;
         fileExtension = ext;
-        //System.out.println("what is fileExtension: " + fileExtension);
+        System.out.println("what is fileExtension: " + fileExtension);
         this.XYZ = XYZ;
         //
-        this.xMin = CalcMaxMin.calcMin(this.XYZ.get("X"));
-        this.xMax = CalcMaxMin.calcMax(this.XYZ.get("X"));
-        this.yMin = CalcMaxMin.calcMin(this.XYZ.get("Y"));
-        this.yMax = CalcMaxMin.calcMax(this.XYZ.get("Y"));
+        this.xMin = calcMin(this.XYZ.get("X"));
+        this.xMax = calcMax(this.XYZ.get("X"));
+        this.yMin = calcMin(this.XYZ.get("Y"));
+        this.yMax = calcMax(this.XYZ.get("Y"));
 //        System.out.println("what is ymax and ymin\n" + yMax + "\n"+yMin);
         //
-//        System.out.println("what is the type for the vals\n" + (this.XYZ.get("VALS")).getClass().getName());
+//        System.out.println("what is the type for the vals\n" + (this.XYZ.get("Z")).getClass().getName());
         //
         this.centerX = 0;
         this.centerY = 0;
-        this.radiusXMax = CalcMaxMin.calcAbsMax(this.XYZ.get("X"));
-        this.radiusYMax = CalcMaxMin.calcAbsMax(this.XYZ.get("Y"));
+        this.radiusXMax = calcAbsMax(this.XYZ.get("X"));
+        this.radiusYMax = calcAbsMax(this.XYZ.get("Y"));
         this.radiusXMax = Math.min(this.radiusXMax, this.radiusYMax);
-        this.zMin = CalcMaxMin.calcMin(this.XYZ.get("Z"));
-        this.zMax = CalcMaxMin.calcMax(this.XYZ.get("Z"));
+        this.zMin = calcMin(this.XYZ.get("Z"));
+        this.zMax = calcMax(this.XYZ.get("Z"));
         //
         this.zBlockW = Math.abs(xMax - xMin) / ptSq;
         this.zBlockH = Math.abs(yMax - yMin) / ptSq;
         this.cBlock = ptSq;
+        System.out.println("the width is " + zBlockW);
+        System.out.println("the height is " + zBlockH);
+        System.out.println("the zMax is " + zMax);
+        System.out.println("the zMin is " + zMin);
+//        System.out.println("the color incr is " + cBlock);
+
         // Before creating data, filter out points outside the circle.
         //this.XYCircleZ = filterDataByWafer(this.XYZ);
         this.XYCircleZ = filterDataByWafer();
@@ -231,7 +246,7 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
             }
             public Comparable getSeriesKey(int series) {
                 // Required
-                return "XYZRenderer_230830";
+                return "XYZRenderer_230524";
             }
             public int indexOf(Comparable seriesKey) {
                 return 0;
@@ -371,16 +386,23 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
         ChartUtilities.applyCurrentTheme(chart);
         ChartUtilities.saveChartAsPNG(new File(SaveTo), chart, numX, numY);
         */
-        if (fileExtension.equals(".png")) {
-            ChartUtils.applyCurrentTheme(chart);
-            ChartUtils.saveChartAsPNG(new File(SaveTo), chart, numX, numY);
-            //System.out.println(".PNG - SaveTo\n" + SaveTo);
-        } else {
-            /*export as svg too?*/
-            System.out.println(".SVG - SaveTo\n" + SaveTo);
-            File SaveToFile = new File(new String(SaveTo));
-            exportChartAsSVG(chart, new Rectangle(0, 0, numX, numY), SaveToFile);
-        }
+//        if (fileExtension.equals(".png")) {
+////            ChartUtils.applyCurrentTheme(chart);
+////            ChartUtils.saveChartAsPNG(new File(SaveTo), chart, numX, numY);
+//            ChartUtilities.applyCurrentTheme(chart);
+//            ChartUtilities.saveChartAsPNG(new File(SaveTo), chart, numX, numY);
+//            //System.out.println(".PNG - SaveTo\n" + SaveTo);
+//        } else {
+//            /*export as svg too?*/
+//            System.out.println(".SVG - SaveTo\n" + SaveTo);
+//            File SaveToFile = new File(new String(SaveTo));
+//            exportChartAsSVG(chart, new Rectangle(0, 0, numX, numY), SaveToFile);
+//        }
+        //
+        System.out.println(".SVG - SaveTo\n" + SaveTo);
+        File SaveToFile = new File(new String(SaveTo));
+        exportChartAsSVG(chart, new Rectangle(0, 0, numX, numY), SaveToFile);
+
         // Display the chart in a frame
         JFrame frame = new JFrame(chartTitle);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -446,7 +468,17 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
                 annotation.setFont(labelFont);
                 annotation.setTextAnchor(TextAnchor.TOP_CENTER);
                 plot.addAnnotation(annotation);
+            } /*else {
+                // System.out.println("what is x\n"+x+"\nwhat is y\n"+y+"\nwhat is the label\n"+label);
+                XYPolygonAnnotation pointAnnotation = new XYPolygonAnnotation(new double[]{x, y});
+                plot.addAnnotation(pointAnnotation);
+//                XYTextAnnotation annotation = new XYTextAnnotation(label, x, y);
+//                annotation.setFont(labelFont);
+//                annotation.setTextAnchor(TextAnchor.CENTER);
+//
+//                plot.addAnnotation(annotation);
             }
+            */
         }
     }
     private static GeneralPath createPolygon(double centerX, double centerY, double radius) {
@@ -468,73 +500,263 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
         polygon.closePath();
         return polygon;
     }
+
+    //
+    public double calcMax(List<Double> rawData) {
+        int rawSize = rawData.size();
+        double[] rawData2 = new double[rawSize];
+        for (int i = 0; i < rawSize; i++) {
+            if (!Double.isNaN(rawData.get(i)))
+                rawData2[i] = rawData.get(i);
+        }
+        if (rawData2.length == 0)
+            System.out.print("this isn't working");
+
+        int j = 0;
+
+        for (int i = 1; i < rawData2.length; i++) {
+            Double val2 = rawData2[i];
+            if (val2 > rawData2[j])
+                j = i;
+        }
+        double maxRawData = rawData2[j];
+//        System.out.println("\nthe max is: " + maxRawData);
+        return maxRawData;
+    }
+    public double calcAbsMax(List<Double> rawData) {
+        int rawSize = rawData.size();
+        double[] rawData2 = new double[rawSize];
+        for (int i = 0; i < rawSize; i++) {
+            if (!Double.isNaN(rawData.get(i)))
+                //rawData2.add(val);
+                rawData2[i] = Math.abs(rawData.get(i));
+        }
+        if (rawData2.length == 0)
+            System.out.print("this isn't working");
+
+        int j = 0;
+
+        for (int i = 1; i < rawData2.length; i++) {
+            Double val2 = Math.abs(rawData2[i]);
+            if (val2 > Math.abs(rawData2[j]))
+                j = i;
+        }
+        double maxRawData = rawData2[j];
+//        System.out.println("\nthe max is: " + maxRawData);
+        return maxRawData;
+    }
+    //
+    public double calcMin(List<Double> rawData) {
+        int rawSize = rawData.size();
+        double[] rawData2 = new double[rawSize];
+        for (int i = 0; i < rawSize; i++) {
+            if (!Double.isNaN(rawData.get(i)))
+                rawData2[i] = rawData.get(i);
+        }
+        if (rawData2.length == 0)
+            System.out.print("this isn't working");
+        int j = 0;
+        //for (int i = 1; i < rawData2.size(); i++) {
+        for (int i = 1; i < rawData2.length; i++) {
+            Double val2 = rawData2[i];
+            if (val2 < rawData2[j])
+                j = i;
+        }
+        double minRawData = rawData2[j];
+//        System.out.println("\nthe min is: " + minRawData);
+
+        return minRawData;
+    }
+    public double calcAbsMin(List<Double> rawData) {
+        int rawSize = rawData.size();
+        double[] rawData2 = new double[rawSize];
+        for (int i = 0; i < rawSize; i++) {
+            if (!Double.isNaN(rawData.get(i)))
+                rawData2[i] = Math.abs(rawData.get(i));
+        }
+        if (rawData2.length == 0)
+            System.out.print("this isn't working");
+        int j = 0;
+        //for (int i = 1; i < rawData2.size(); i++) {
+        for (int i = 1; i < rawData2.length; i++) {
+            Double val2 = Math.abs(rawData2[i]);
+            if (val2 < Math.abs(rawData2[j]))
+                j = i;
+        }
+        double minRawData = rawData2[j];
+//        System.out.println("\nthe min is: " + minRawData);
+
+        return minRawData;
+    }
+    //
+    public double calcInterval(List<Double> rawData, int inter, int idx) {
+        double zMin = calcMin(rawData);
+        double zMax = calcMax(rawData);
+        double zIncrement = (zMax - zMin) / inter;
+        double[] zIncrementList = new double[inter+1];
+        double zInter = 0.0;
+        for (int i = 0; i < inter+1; i++) {
+            zIncrementList[i] = zMin + i * zIncrement;
+//            System.out.println("@increment "+i);
+            System.out.println("[]]increment "+ Arrays.toString(zIncrementList));
+        }
+        zInter = zIncrementList[idx];
+        return zInter;
+    }
+    //
+    public static HashMap MakeHashMap() {
+        HashMap<String, HashMap<String, List>> MsrmtDict = new HashMap<String, HashMap<String, List>>();
+        try {
+            Reader reader = Files.newBufferedReader(Paths.get(filename));
+            //read the file
+            Iterable<CSVRecord> records = CSVFormat.DEFAULT.withHeader("WAFER_ID", "SITE_ID", "X_COORD", "Y_COORD"
+                    , "MEASUREMENT_NAME", "MEASUREMENT_VALUE").parse(reader);
+            //
+            int CountRow = 0;
+            List<String> MsrmtNames = new ArrayList<>();
+            MsrmtDict = new HashMap<String, HashMap<String, List>>();
+            int WaferIdIndex = 0;
+            int SiteIdIndex = 0;
+            int XCoordIndex = 0;
+            int YCoordIndex = 0;
+            int MeasurementNameIndex = 0;
+            int MeasurementValueIndex = 0;
+            //
+            for (CSVRecord record : records) {
+                int RecordLength = record.size();
+                HashMap<String, List> TempMsrmtDict = new HashMap<>();
+                List<Integer> TempSites = new ArrayList<>();
+                List<Double> TempXCoords = new ArrayList<>();
+                List<Double> TempYCoords = new ArrayList<>();
+                List<Double> TempMeasurementValues = new ArrayList<>();
+                if (CountRow == 0) {
+                    for (int r = 0; r < RecordLength; r++) {
+                        switch (record.get(r)) {
+                            case "WAFER_ID":
+                                WaferIdIndex = r;
+                                break;
+                            case "SITE_ID":
+                                SiteIdIndex = r;
+                                break;
+                            case "X_COORD":
+                                XCoordIndex = r;
+                                break;
+                            case "Y_COORD":
+                                YCoordIndex = r;
+                                break;
+                            case "MEASUREMENT_NAME":
+                                MeasurementNameIndex = r;
+                                break;
+                            case "MEASUREMENT_VALUE":
+                                MeasurementValueIndex = r;
+                                break;
+                        }
+                    }
+                    CountRow++;
+                } else if (CountRow == 1) {
+                    List<String> TempMeasurementNames = new ArrayList<>(MsrmtNames);
+                    int TempSite = Integer.parseInt(record.get(SiteIdIndex));
+                    Double TempXCoord = Double.valueOf(record.get(XCoordIndex));
+                    Double TempYCoord = Double.valueOf(record.get(YCoordIndex));
+                    String TempMeasurementName = record.get(MeasurementNameIndex);
+                    Double TempMeasurementValue = Double.valueOf(record.get(MeasurementValueIndex));
+                    //
+                    TempSites.add(TempSite);
+                    TempXCoords.add(TempXCoord);
+                    TempYCoords.add(TempYCoord);
+                    TempMeasurementNames.add(TempMeasurementName);
+                    TempMeasurementValues.add(TempMeasurementValue);
+                    //
+                    Set<String> TempMsrValSet = new HashSet<String>(TempMeasurementNames);
+                    MsrmtNames = new ArrayList<>(TempMsrValSet);
+                    //
+                    TempMsrmtDict.put("SITES", TempSites);
+                    TempMsrmtDict.put("X", TempXCoords);
+                    TempMsrmtDict.put("Y", TempYCoords);
+                    TempMsrmtDict.put("Z", TempMeasurementValues);
+                    MsrmtDict.put(record.get(MeasurementNameIndex), TempMsrmtDict);
+                    CountRow++;
+                } else if (MsrmtNames.contains(record.get(MeasurementNameIndex))) {
+                    int TempSite = Integer.parseInt(record.get(SiteIdIndex));
+                    Double TempXCoord = Double.valueOf(record.get(XCoordIndex));
+                    Double TempYCoord = Double.valueOf(record.get(YCoordIndex));
+                    String TempMeasurementName = record.get(MeasurementNameIndex);
+                    Double TempMeasurementValue = Double.valueOf(record.get(MeasurementValueIndex));
+                    //
+                    MsrmtDict.get(TempMeasurementName).get("SITES").add(TempSite);
+                    MsrmtDict.get(TempMeasurementName).get("X").add(TempXCoord);
+                    MsrmtDict.get(TempMeasurementName).get("Y").add(TempYCoord);
+                    MsrmtDict.get(TempMeasurementName).get("Z").add(TempMeasurementValue);
+                    //
+                    CountRow++;
+                } else if (!MsrmtNames.contains(record.get(MeasurementNameIndex))) {
+                    List<String> TempMeasurementNames = new ArrayList<>(MsrmtNames);
+                    int TempSite = Integer.parseInt(record.get(SiteIdIndex));
+                    Double TempXCoord = Double.valueOf(record.get(XCoordIndex));
+                    Double TempYCoord = Double.valueOf(record.get(YCoordIndex));
+                    String TempMeasurementName = record.get(MeasurementNameIndex);
+                    Double TempMeasurementValue = Double.valueOf(record.get(MeasurementValueIndex));
+                    //
+                    TempSites.add(TempSite);
+                    TempXCoords.add(TempXCoord);
+                    TempYCoords.add(TempYCoord);
+                    TempMeasurementNames.add(TempMeasurementName);
+                    TempMeasurementValues.add(TempMeasurementValue);
+                    //
+                    Set<String> TempMsrValSet = new HashSet<String>(TempMeasurementNames);
+                    MsrmtNames = new ArrayList<>(TempMsrValSet);
+                    TempMsrmtDict.put("SITES", TempSites);
+                    TempMsrmtDict.put("X", TempXCoords);
+                    TempMsrmtDict.put("Y", TempYCoords);
+                    TempMsrmtDict.put("Z", TempMeasurementValues);
+                    MsrmtDict.put(record.get(MeasurementNameIndex), TempMsrmtDict);
+                    CountRow++;
+                }
+            }
+            reader.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return MsrmtDict;
+    }
     //
     public static HashMap<String, List<Double>> MakeInterpArray() {
         HashMap<String, List<Double>> XYZHash = new HashMap<String, List<Double>>();
-        long startTime2a = System.currentTimeMillis();
         Coords();
-        long endTime2a = System.currentTimeMillis();
-        System.out.println("part2a: Format the Init Coords \ntook:" + (endTime2a - startTime2a) + " milliseconds");
-        //
-        long startTime2b = System.currentTimeMillis();
         SortArray();
-        long endTime2b = System.currentTimeMillis();
-        System.out.println("part2b: Sort the Init Coords \ntook:" + (endTime2b - startTime2b) + " milliseconds");
-        //
-        long startTime2c = System.currentTimeMillis();
         xArray();
-        long endTime2c = System.currentTimeMillis();
-        System.out.println("part2c: Create the X Coords \ntook:" + (endTime2c - startTime2c) + " milliseconds");
-        //
-        long startTime2d = System.currentTimeMillis();
         yArray();
-        long endTime2d = System.currentTimeMillis();
-        System.out.println("part2d: Create the Y Coords \ntook:" + (endTime2d - startTime2d) + " milliseconds");
-        //
-        long startTime2e = System.currentTimeMillis();
+        trainingXY();
         interpolateXY();
-        long endTime2e = System.currentTimeMillis();
-        System.out.println("part2e: Create XYCoords for interp Z\ntook:" + (endTime2e - startTime2e) + " milliseconds");
-        System.out.println("part2_c-e: Check the x/y and interp XY\ntook:" + (endTime2e - startTime2c) + " milliseconds");
-        //
-        long startTime2f = System.currentTimeMillis();
-        //KrigingInterpolation2D krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted);
-        ShepardInterpolation2D shepardInterpolator = new ShepardInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted, 4);
-        //MultivariateInterpolator interpolator = new MicrosphereInterpolator();
-        long endTime2f = System.currentTimeMillis();
-        System.out.println("part2g: Create KrigingInterpolation2D interpolator\ntook:" + (endTime2f - startTime2f) + " milliseconds");
-        //
+        MultivariateInterpolator interpolator = new MicrosphereInterpolator();
+//        MultivariateFunction function = interpolator.interpolate(initXYCoords, ZVals);
+        MultivariateFunction function = interpolator.interpolate(initXYCoords, ZValsSorted);
+//        MultivariateFunction function = interpolator.interpolate(XYCoords, ZValsSorted);
+        ZValsInterp = new double[XYCoords.length];
+        XCoordsInterpFull = new double[XYCoords.length];
+        YCoordsInterpFull = new double[XYCoords.length];
         ZValsDoubleInterp = new ArrayList<>();
         XCoordsDoubleInterpFull = new ArrayList<>();
         YCoordsDoubleInterpFull = new ArrayList<>();
-        //
-        //ZValsInterp = new double[XYCoords.length];
-        //XCoordsInterpFull = new double[XYCoords.length];
-        //YCoordsInterpFull = new double[XYCoords.length];
-        long startTime2g = System.currentTimeMillis();
-        //for (int zi = 0; zi < ZValsInterp.length; zi++) {
-        for (int zi = 0; zi < interpolatedPointCount; zi++) {
+        for (int zi = 0; zi < ZValsInterp.length; zi++) {
             double xpoint = XYCoords[zi][0];
             double ypoint = XYCoords[zi][1];
-            //ZInterp = krigingInterpolator.interpolate(xpoint, ypoint);
-            ZInterp = shepardInterpolator.interpolate(xpoint, ypoint);
-            //XCoordsInterpFull[zi] = xpoint;
-            //YCoordsInterpFull[zi] = ypoint;
+            MultiInterpolationXY = new double[]{xpoint, ypoint};
+            MultiInterpolatedZ = function.value(MultiInterpolationXY);
+            ZValsInterp[zi] = MultiInterpolatedZ;
+            XCoordsInterpFull[zi] = xpoint;
+            YCoordsInterpFull[zi] = ypoint;
             //
-            //ZValsDoubleInterp.add(ZValsInterp[zi]);
-            ZValsDoubleInterp.add(ZInterp);
+            ZValsDoubleInterp.add(MultiInterpolatedZ);
             XCoordsDoubleInterpFull.add(xpoint);
             YCoordsDoubleInterpFull.add(ypoint);
         }
-        long endTime2g = System.currentTimeMillis();
-        System.out.println("part2i: Build XYZ Interp for loop\ntook:" + (endTime2g - startTime2g) + " milliseconds");
         //
         XYZHash.put("X", XCoordsDoubleInterpFull);
         XYZHash.put("Y", YCoordsDoubleInterpFull);
         XYZHash.put("Z", ZValsDoubleInterp);
         return XYZHash;
     }
-
     //
     public static void Coords() {
         XCoords = new double[XClist.size()];
@@ -547,8 +769,9 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
         }
     }
     public static void xArray() {
-        double xMin = CalcMaxMin.calcMin(XCoords);
-        double xMax = CalcMaxMin.calcMax(XCoords);
+        CalcMaxMin CMM = new CalcMaxMin();
+        double xMin = CMM.calcMin(XCoords);
+        double xMax = CMM.calcMax(XCoords);
 //        System.out.println("xCoords Max "+xMax+"\nxCoords Min "+xMin);
         double xIncrement = (xMax - xMin)/sqrtR;
         double currX = xMax * 1;
@@ -557,7 +780,6 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
             currX = xMax - xIncrement * i;
             XCoordsInterp[i] = currX;
         }
-        //System.out.println(Arrays.toString(XCoordsInterp));
     }
     // Linear-search function to find the index of an element
     /**
@@ -601,8 +823,9 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
         }
     }
     public static void yArray() {
-        double yMin = CalcMaxMin.calcMin(YCoords);
-        double yMax = CalcMaxMin.calcMax(YCoords);
+        CalcMaxMin CMM = new CalcMaxMin();
+        double yMin = CMM.calcMin(YCoords);
+        double yMax = CMM.calcMax(YCoords);
         double yIncrement = (yMax - yMin)/sqrtR;
         double currY = yMax * 1;
         YCoordsInterp = new double[sqrtR+1];
@@ -610,96 +833,69 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
             currY = yMax - yIncrement * i;
             YCoordsInterp[i] = currY;
         }
-        //System.out.println("YCoordsInterp.length\n" + YCoordsInterp.length);
+        System.out.println("YCoordsInterp.length\n" + YCoordsInterp.length);
+    }
+    public static void trainingXY() {
+        initXYCoords = new double[XCoordsSorted.length][2];
+        for (int xy=0; xy < XCoordsSorted.length; xy++) {
+            double[] xyPoint = {XCoordsSorted[xy], YCoordsSorted[xy]};
+            initXYCoords[xy] = xyPoint;
+        }
     }
     public static void interpolateXY() {
-        interpolatedPointCount = XCoordsInterp.length * YCoordsInterp.length;
-        //XYCoords = new double[XCoordsInterp.length * YCoordsInterp.length][2];
-        XYCoords = new double[interpolatedPointCount][2];
+        XYCoords = new double[XCoordsInterp.length * YCoordsInterp.length][2];
         int XYCoordsCount = 0;
         int xiMax = XCoordsInterp.length;
         int yiMax = YCoordsInterp.length;
         int xi = 0;
         int yi = 0;
-        //double[] xyPoint = new double [XCoordsInterp.length * YCoordsInterp.length];
         while (XYCoordsCount < XCoordsInterp.length * YCoordsInterp.length) {
             if (xi < xiMax) {
                 if (yi < yiMax) {
-                    //double[] xyPoint = {XCoordsInterp[xi], YCoordsInterp[yi]};
-                    xyPoint = new double[]{XCoordsInterp[xi], YCoordsInterp[yi]};
-                    XYCoords[XYCoordsCount] = xyPoint;
+                    double[] ypoint = {XCoordsInterp[xi], YCoordsInterp[yi]};
+                    XYCoords[XYCoordsCount] = ypoint;
                 } else {
                     xi += 1;
                     yi = 0;
-                    xyPoint = new double[]{XCoordsInterp[xi], YCoordsInterp[yi]};
-                    XYCoords[XYCoordsCount] = xyPoint;
+                    double[] ypoint = {XCoordsInterp[xi], YCoordsInterp[yi]};
+                    XYCoords[XYCoordsCount] = ypoint;
                 }
                 yi += 1;
-                //System.out.println(Arrays.toString(xyPoint));
             }
-            //System.out.println(Arrays.toString(xyPoint));
             XYCoordsCount += 1;
         }
-        //System.out.println(Arrays.toString(XYCoords));
     }
     public static void main(String[] args) throws IOException {
-        for (String s : filenames) {
-            long startTimeAll = System.currentTimeMillis();
-            long startTime1 = System.currentTimeMillis();
-            HashMap<String, HashMap<String, List<Double>>> MsrmntHashMap = MetrologyCSVReader.csvToHashMap(s);
-            long endTime1 = System.currentTimeMillis();
-            System.out.println("part1: the HashMap from CSV \ntook:" + (endTime1 - startTime1) + " milliseconds");
-            //
-            //        System.out.println("this is the first data plot\n" + MsrmntHashMap);
-            XClist = MsrmntHashMap.get("THK").get("X");
-            YClist = MsrmntHashMap.get("THK").get("Y");
-            ZVlist = MsrmntHashMap.get("THK").get("Z");
-            String ContourDatasetStyle = "XYRenderer";
-            //String[] fileExts = {".png", ".svg"};
-            String fileExts = ".svg";
-
-            //Create new points via interpolation
-            long startTime2 = System.currentTimeMillis();
-            HashMap<String, List<Double>> XYZHash = MakeInterpArray();
-            long endTime2 = System.currentTimeMillis();
-            System.out.println("part2: Creating the Interpolated Data \ntook:" + (endTime2 - startTime2) + " milliseconds");
-
-            //for (String s : fileExts) {
+        HashMap<String, HashMap<String, List<Double>>> MsrmntHashMap = MetrologyCSVReader.csvToHashMap(filename);
+//        System.out.println("this is the first data plot\n" + MsrmntHashMap);
+        XClist = MsrmntHashMap.get("THK").get("X");
+        YClist = MsrmntHashMap.get("THK").get("Y");
+        ZVlist = MsrmntHashMap.get("THK").get("Z");
+        String ContourDatasetStyle = "XYRenderer";
+        String[] fileExts = {".png", ".svg"};
+        //Create new points via interpolation
+        HashMap<String, List<Double>> XYZHash = MakeInterpArray();
+        for (String s : fileExts) {
             StringBuilder PlotSaveToDestination = new StringBuilder();
-            String WaferMapTitle = "WaferTHK_XYZRender_Smile_ShepardInterpolation2D" + "_InterpPts:" + (int) Math.pow(sqrtR + 1, 2);
+            String WaferMapTitle = "WaferTHK_XYZRenderLabeled" + "_InterpPts:" + (int) Math.pow(sqrtR + 1, 2);
             //
             String filenameTimeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss")
                     .format(new Date());
-//            String mainFolder = "C:\\Users\\tpizzone\\OneDrive - Eyelit Inc\\Code\\Java" +
-//                    "\\SmileImplementation\\GenerateMap";
-            String mainFolder = "GeneratedMaps\\";
-//            String subFolder = "src\\main\\java";
+            String mainFolder = "C:\\Users\\tpizzone\\OneDrive - Eyelit Inc\\Code\\Java" +
+                    "\\TestInterpolations\\GenerateMap";
+            String subFolder = "src\\main";
             //String fileType = ".png";
-//        String joinFolder = "\\";
-            //
-            File directory = new File(mainFolder);
-            if (!directory.exists()) {
-                directory.mkdir();
-            }
-            //
-            PlotSaveToDestination.append(mainFolder);
-//            PlotSaveToDestination.append(mainFolder).append(joinFolder).append(subFolder)
-//                    .append(joinFolder);
-            PlotSaveToDestination.append("WaferTHK_XYZRender_Smile_ShepardInterpolation2D").append(ContourDatasetStyle)
+            String joinFolder = "\\";
+            PlotSaveToDestination.append(mainFolder).append(joinFolder).append(subFolder)
+                    .append(joinFolder);
+            PlotSaveToDestination.append("WaferTHK_XYZRenderLabeled").append(ContourDatasetStyle)
                     .append("_NumPts-")
                     .append((int) Math.pow(sqrtR + 1, 2))
                     .append("_").append(filenameTimeStamp);
-            //            PlotSaveToDestination.append(fileType);
-            //PlotSaveToDestination.append(s);
-            PlotSaveToDestination.append(fileExts);
-            //new InterpolateMetrologyMapClassic(WaferMapTitle, PlotSaveToDestination.toString(), XYZHash, sqrtR, s);
-            //
-            long startTime3 = System.currentTimeMillis();
-            new InterpolateMetrologyMap_SmileShepardInterpolation2D(WaferMapTitle, PlotSaveToDestination.toString(), XYZHash, sqrtR, fileExts);
-            long endTime3 = System.currentTimeMillis();
-            System.out.println("part3: Make the Plot \ntook:" + (endTime3 - startTime3) + " milliseconds");
-            long endTimeAll = System.currentTimeMillis();
-            System.out.println("Total: The Smile-ShepardInterpolation2D WHOLE thing \ntook:" + (endTimeAll - startTimeAll) + " milliseconds");
+//            PlotSaveToDestination.append(fileType);
+            PlotSaveToDestination.append(s);
+//            new WaferMapInterpolatePointsXYRendererLabeledClippedPNGSVG(WaferMapTitle, PlotSaveToDestination.toString(), XYZHash, sqrtR, fileType);
+            new WaferMapInterpolatePointsXYRendererLabeledClippedPNGSVG(WaferMapTitle, PlotSaveToDestination.toString(), XYZHash, sqrtR, s);
         }
     }
 }
