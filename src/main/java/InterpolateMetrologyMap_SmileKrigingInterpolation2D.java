@@ -26,6 +26,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.GeneralPath;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
@@ -36,8 +37,8 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
 //    public static String filename ="SampleMetrologyTHK_v1.csv";
     public static String[] filenames = new String[]{"SampleMetrologyTHK_v1.csv"
             , "SampleMetrologyTHK_v2.csv", "SampleMetrologyTHK_v3.csv", "SampleMetrologyTHK_v4.csv"};
-    public HashMap<String, List<Double>> XYZ = new HashMap<String, List<Double>>();
-    public HashMap<String, List<Double>> XYCircleZ = new HashMap<String, List<Double>>();
+    public HashMap<String, List<Double>> XYZ;
+    public HashMap<String, List<Double>> XYCircleZ;
     /** name of plot title. */
     public String chartTitle;
     /** name of file title. */
@@ -62,8 +63,6 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
     public double cBlock;
     /** calc xmax for radii. */
     public double radiusXMax;
-    /** calc xmin for radii. */
-    public double radiusMax;
     /** calc ymax for radii. */
     public double radiusYMax;
     /** Center x-axis. */
@@ -102,7 +101,7 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
      * @param XYZ hashmap values
      * @param ptSq int
      */
-    public InterpolateMetrologyMap_SmileKrigingInterpolation2D(String title, String fileTitle, HashMap XYZ, int ptSq, String ext)
+    public InterpolateMetrologyMap_SmileKrigingInterpolation2D(String title, String fileTitle, HashMap<String, List<Double>> XYZ, int ptSq, String ext)
             throws IOException {
 
         this.chartTitle = title;
@@ -112,21 +111,20 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
         //System.out.println("what is fileExtension: " + fileExtension);
         this.XYZ = XYZ;
         //
-        this.xMin = calcMin(this.XYZ.get("X"));
-        this.xMax = calcMax(this.XYZ.get("X"));
-        this.yMin = calcMin(this.XYZ.get("Y"));
-        this.yMax = calcMax(this.XYZ.get("Y"));
+        this.xMax = CalcMaxMin.calcMax(this.XYZ.get("X"));
+        this.yMin = CalcMaxMin.calcMin(this.XYZ.get("Y"));
+        this.yMax = CalcMaxMin.calcMax(this.XYZ.get("Y"));
 //        System.out.println("what is ymax and ymin\n" + yMax + "\n"+yMin);
         //
 //        System.out.println("what is the type for the vals\n" + (this.XYZ.get("VALS")).getClass().getName());
         //
         this.centerX = 0;
         this.centerY = 0;
-        this.radiusXMax = calcAbsMax(this.XYZ.get("X"));
-        this.radiusYMax = calcAbsMax(this.XYZ.get("Y"));
+        this.radiusXMax = CalcMaxMin.calcAbsMax(this.XYZ.get("X"));
+        this.radiusYMax = CalcMaxMin.calcAbsMax(this.XYZ.get("Y"));
         this.radiusXMax = Math.min(this.radiusXMax, this.radiusYMax);
-        this.zMin = calcMin(this.XYZ.get("Z"));
-        this.zMax = calcMax(this.XYZ.get("Z"));
+        this.zMin = CalcMaxMin.calcMin(this.XYZ.get("Z"));
+        this.zMax = CalcMaxMin.calcMax(this.XYZ.get("Z"));
         //
         this.zBlockW = Math.abs(xMax - xMin) / ptSq;
         this.zBlockH = Math.abs(yMax - yMin) / ptSq;
@@ -196,19 +194,19 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
                 return XCoordsList.size();
             }
             public Number getX(int series, int item) {
-                return new Double(getXValue(series, item));
+                return getXValue(series, item);
             }
             public double getXValue(int series, int item) {
                 return XCoordsList.get(item);
             }
             public Number getY(int series, int item) {
-                return new Double(getYValue(series, item));
+                return getYValue(series, item);
             }
             public double getYValue(int series, int item) {
                 return YCoordsList.get(item);
             }
             public Number getZ(int series, int item) {
-                return new Double(getZValue(series, item));
+                return getZValue(series, item);
             }
             public double getZValue(int series, int item) {
                 return ZValsList.get(item);
@@ -348,7 +346,7 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
         NumberAxis numberaxisZ = new NumberAxis("Scale");
         numberaxisZ.setAxisLinePaint(Color.white);
         numberaxisZ.setTickMarkPaint(Color.white);
-        numberaxisZ.setTickLabelFont(new Font("Dialog", 0, 7));
+        numberaxisZ.setTickLabelFont(new Font("Dialog", Font.PLAIN, 7));
         PaintScaleLegend waferPaintScaleLegend = new PaintScaleLegend(waferPaintScale, numberaxisZ);
         waferPaintScaleLegend.setAxisLocation(AxisLocation.BOTTOM_OR_LEFT);
         waferPaintScaleLegend.setFrame(new BlockBorder(Color.white));
@@ -374,7 +372,7 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
         } else {
             /*export as svg too?*/
             System.out.println(".SVG - SaveTo\n" + SaveTo);
-            File SaveToFile = new File(new String(SaveTo));
+            File SaveToFile = new File(SaveTo);
             exportChartAsSVG(chart, new Rectangle(0, 0, numX, numY), SaveToFile);
         }
         // Display the chart in a frame
@@ -399,7 +397,7 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
 
         // Write svg file
         OutputStream outputStream = new FileOutputStream(svgFile);
-        Writer out = new OutputStreamWriter(outputStream, "UTF-8");
+        Writer out = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
         svgGenerator.stream(out, true /* use css */);
         outputStream.flush();
         outputStream.close();
@@ -474,108 +472,6 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
         polygon.closePath();
         return polygon;
     }
-
-    //
-    public double calcMax(List<Double> rawData) {
-        int rawSize = rawData.size();
-        double[] rawData2 = new double[rawSize];
-        for (int i = 0; i < rawSize; i++) {
-            if (!Double.isNaN(rawData.get(i)))
-                rawData2[i] = rawData.get(i);
-        }
-        if (rawData2.length == 0)
-            System.out.print("this isn't working");
-
-        int j = 0;
-
-        for (int i = 1; i < rawData2.length; i++) {
-            Double val2 = rawData2[i];
-            if (val2 > rawData2[j])
-                j = i;
-        }
-        double maxRawData = rawData2[j];
-//        System.out.println("\nthe max is: " + maxRawData);
-        return maxRawData;
-    }
-    public double calcAbsMax(List<Double> rawData) {
-        int rawSize = rawData.size();
-        double[] rawData2 = new double[rawSize];
-        for (int i = 0; i < rawSize; i++) {
-            if (!Double.isNaN(rawData.get(i)))
-                //rawData2.add(val);
-                rawData2[i] = Math.abs(rawData.get(i));
-        }
-        if (rawData2.length == 0)
-            System.out.print("this isn't working");
-
-        int j = 0;
-
-        for (int i = 1; i < rawData2.length; i++) {
-            Double val2 = Math.abs(rawData2[i]);
-            if (val2 > Math.abs(rawData2[j]))
-                j = i;
-        }
-        double maxRawData = rawData2[j];
-//        System.out.println("\nthe max is: " + maxRawData);
-        return maxRawData;
-    }
-    //
-    public double calcMin(List<Double> rawData) {
-        int rawSize = rawData.size();
-        double[] rawData2 = new double[rawSize];
-        for (int i = 0; i < rawSize; i++) {
-            if (!Double.isNaN(rawData.get(i)))
-                rawData2[i] = rawData.get(i);
-        }
-        if (rawData2.length == 0)
-            System.out.print("this isn't working");
-        int j = 0;
-        //for (int i = 1; i < rawData2.size(); i++) {
-        for (int i = 1; i < rawData2.length; i++) {
-            Double val2 = rawData2[i];
-            if (val2 < rawData2[j])
-                j = i;
-        }
-        double minRawData = rawData2[j];
-//        System.out.println("\nthe min is: " + minRawData);
-        return minRawData;
-    }
-    public double calcAbsMin(List<Double> rawData) {
-        int rawSize = rawData.size();
-        double[] rawData2 = new double[rawSize];
-        for (int i = 0; i < rawSize; i++) {
-            if (!Double.isNaN(rawData.get(i)))
-                rawData2[i] = Math.abs(rawData.get(i));
-        }
-        if (rawData2.length == 0)
-            System.out.print("this isn't working");
-        int j = 0;
-        //for (int i = 1; i < rawData2.size(); i++) {
-        for (int i = 1; i < rawData2.length; i++) {
-            Double val2 = Math.abs(rawData2[i]);
-            if (val2 < Math.abs(rawData2[j]))
-                j = i;
-        }
-        double minRawData = rawData2[j];
-//        System.out.println("\nthe min is: " + minRawData);
-
-        return minRawData;
-    }
-    //
-    public double calcInterval(List<Double> rawData, int inter, int idx) {
-        double zMin = calcMin(rawData);
-        double zMax = calcMax(rawData);
-        double zIncrement = (zMax - zMin) / inter;
-        double[] zIncrementList = new double[inter+1];
-        double zInter = 0.0;
-        for (int i = 0; i < inter+1; i++) {
-            zIncrementList[i] = zMin + i * zIncrement;
-//            System.out.println("@increment "+i);
-            //System.out.println("[]]increment "+ Arrays.toString(zIncrementList));
-        }
-        zInter = zIncrementList[idx];
-        return zInter;
-    }
     //
     public static HashMap<String, List<Double>> MakeInterpArray() {
         HashMap<String, List<Double>> XYZHash = new HashMap<String, List<Double>>();
@@ -607,26 +503,26 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
         //
         long startTime2f = System.currentTimeMillis();
         double b = 1.2;
-//        KrigingInterpolation2D krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted);
-//        if (b >= 1.0 && b < 2.0) {
-//            krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted, b);
-//        }
-        KrigingInterpolation2D krigingInterpolator;
-        try {
-            krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted);
-//            KrigingInterpolation2D krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted);
-            System.out.println("no error instantiating krigingInterpolator");
-            if ((b >= 1) && (b < 2)) {
-                krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted, b);
-            }
-        } catch (Throwable k) {
-            System.out.println("error instantiating krigingInterpolator: " + k.getMessage());
-            krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted);
-//            KrigingInterpolation2D krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted);
-            if ((b >= 1) && (b < 2)) {
-                krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted, b);
-            }
+        KrigingInterpolation2D krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted);
+        if (b >= 1.0 && b < 2.0) {
+            krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted, b);
         }
+//        KrigingInterpolation2D krigingInterpolator;
+//        try {
+//            krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted);
+////            KrigingInterpolation2D krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted);
+//            System.out.println("no error instantiating krigingInterpolator");
+//            if ((b >= 1) && (b < 2)) {
+//                krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted, b);
+//            }
+//        } catch (Throwable k) {
+//            System.out.println("error instantiating krigingInterpolator: " + k.getMessage());
+//            krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted);
+////            KrigingInterpolation2D krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted);
+//            if ((b >= 1) && (b < 2)) {
+//                krigingInterpolator = new KrigingInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted, b);
+//            }
+//        }
         //ShepardInterpolation2D krigingInterpolator = new ShepardInterpolation2D(XCoordsSorted, YCoordsSorted, ZValsSorted, 2);
         //MultivariateInterpolator interpolator = new MicrosphereInterpolator();
         long endTime2f = System.currentTimeMillis();
@@ -674,9 +570,8 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
         }
     }
     public static void xArray() {
-        CalcMaxMin CMM = new CalcMaxMin();
-        double xMin = CMM.calcMin(XCoords);
-        double xMax = CMM.calcMax(XCoords);
+        double xMin = CalcMaxMin.calcMin(XCoords);
+        double xMax = CalcMaxMin.calcMax(XCoords);
 //        System.out.println("xCoords Max "+xMax+"\nxCoords Min "+xMin);
         double xIncrement = (xMax - xMin)/sqrtR;
         double currX = xMax * 1;
@@ -729,9 +624,8 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
         }
     }
     public static void yArray() {
-        CalcMaxMin CMM = new CalcMaxMin();
-        double yMin = CMM.calcMin(YCoords);
-        double yMax = CMM.calcMax(YCoords);
+        double yMin = CalcMaxMin.calcMin(YCoords);
+        double yMax = CalcMaxMin.calcMax(YCoords);
         double yIncrement = (yMax - yMin)/sqrtR;
         double currY = yMax * 1;
         YCoordsInterp = new double[sqrtR+1];
@@ -772,11 +666,11 @@ public class InterpolateMetrologyMap_SmileKrigingInterpolation2D {
         //System.out.println(Arrays.toString(XYCoords));
     }
     public static void main(String[] args) throws IOException {
-        for (String s : filenames) {
+        for (String f : filenames) {
             long startTimeAll = System.currentTimeMillis();
             long startTime1 = System.currentTimeMillis();
 //            HashMap<String, HashMap<String, List<Double>>> MsrmntHashMap = MetrologyCSVReader.csvToHashMap(filename);
-            HashMap<String, HashMap<String, List<Double>>> MsrmntHashMap = MetrologyCSVReader.csvToHashMap(s);
+            HashMap<String, HashMap<String, List<Double>>> MsrmntHashMap = MetrologyCSVReader.csvToHashMap(f);
             long endTime1 = System.currentTimeMillis();
             System.out.println("part1: the HashMap from CSV \ntook:" + (endTime1 - startTime1) + " milliseconds");
             //

@@ -41,15 +41,17 @@ import java.util.*;
 //import org.python.apache.commons.compress.utils.
 
 public class MetrologyMap_WeightedObserverved_BufferedImage_XYShapeRenderer_NoColorRangeClass {
-    static String filename ="Sample Data_Multi-Measurement Tests_v2.csv";
-    HashMap<String, List<Double>> XYCircleZ = new HashMap<String, List<Double>>();
-    HashMap<String, List<Double>> XYPixels = new HashMap<String, List<Double>>();
+    static String[] filenames = new String[]{"SampleMetrologyTHK_v1.csv"
+            , "SampleMetrologyTHK_v2.csv", "SampleMetrologyTHK_v3.csv", "SampleMetrologyTHK_v4.csv"};
+    //    static String filename ="Sample Data_Multi-Measurement Tests_v2.csv";
+    HashMap<String, List<Double>> XYCircleZ;
+    HashMap<String, List<Double>> XYPixels;
     WeightedObservedPoints weightedPoints = new WeightedObservedPoints();
     //List<ColorRange> colorRanges = new ArrayList<ColorRange>();
     HashMap<Object, HashMap<Color, List<Double>>> colorRangeTest = new HashMap<>();
-    LookupPaintScale waferPaintScale = new LookupPaintScale();
+    LookupPaintScale waferPaintScale;
     //
-    Map<Color, List<Double>> colorRanges = new HashMap<>();
+    Map<Color, List<Double>> colorRanges;
     //Map<Color, List<Integer>> colorRanges = new HashMap<>();
     //
     Point origin = new Point(0, 0);
@@ -85,7 +87,7 @@ public class MetrologyMap_WeightedObserverved_BufferedImage_XYShapeRenderer_NoCo
     double yOriginDataSpace;
 //    /** Ratio of Resolution to Wafer Dimension. */
 //    protected double waferGraphRatio;
-    static int plotPow = 6;
+    int plotPow;
     static final int[] resolution = {1100, 900};
     /** Number of x intervals. */
     static final int numX = resolution[0];
@@ -103,15 +105,16 @@ public class MetrologyMap_WeightedObserverved_BufferedImage_XYShapeRenderer_NoCo
      * @param title the frame title.
      * @param XYZ hashmap values
      */
-    MetrologyMap_WeightedObserverved_BufferedImage_XYShapeRenderer_NoColorRangeClass(String title, String fileTitle, HashMap XYZ, HashMap XYZPixel
-                                                                                     //, String ext) throws IOException {
-            , int pow) throws IOException {
+    MetrologyMap_WeightedObserverved_BufferedImage_XYShapeRenderer_NoColorRangeClass(String title, String fileTitle
+            , HashMap<String, List<Double>> XYZ, HashMap<String, List<Double>> XYZPixel, int pow) throws IOException {
         this.chartTitle = title;
         this.SaveTo = fileTitle;
         //fileExtension = ext;
         //System.out.println("what is fileExtension: " + fileExtension);
         this.XYCircleZ = XYZ;
         this.XYPixels = XYZPixel;
+        //
+        this.plotPow = pow;
         //
         this.xMin = calcMin(this.XYCircleZ.get("X"));
         this.xMax = calcMax(this.XYCircleZ.get("X"));
@@ -865,66 +868,69 @@ public class MetrologyMap_WeightedObserverved_BufferedImage_XYShapeRenderer_NoCo
     }
     //
     public static void main(String[] args) throws IOException {
-        long startTimeAll = System.currentTimeMillis();
-        long startTime1 = System.currentTimeMillis();
-        HashMap<String, HashMap<String, List<Double>>> MsrmntHashMap = MetrologyCSVReader.csvToHashMap(filename);
-        long endTime1 = System.currentTimeMillis();
-        System.out.println("part1: the HashMap from CSV \ntook:" + (endTime1 - startTime1) + " milliseconds");
-        //
-        long startTime2 = System.currentTimeMillis();
-        XClist = MsrmntHashMap.get("THK").get("X");
-        YClist = MsrmntHashMap.get("THK").get("Y");
-        ZVlist = MsrmntHashMap.get("THK").get("Z");
-        long endTime2 = System.currentTimeMillis();
-        System.out.println("part2: Making the X/Y/Z lists \ntook:" + (endTime2 - startTime2) + " milliseconds");
-        //
-        String ContourDatasetStyle = "BufferedImage";
-        String JFreeChartStyle = "XYShapeRenderer";
-        //String[] fileExts = {".png", ".svg"};
-        //String fileExt = ".png";
+        for (String f : filenames) {
+            long startTimeAll = System.currentTimeMillis();
+            long startTime1 = System.currentTimeMillis();
+            HashMap<String, HashMap<String, List<Double>>> MsrmntHashMap = MetrologyCSVReader.csvToHashMap(f);
+            long endTime1 = System.currentTimeMillis();
+            System.out.println("part1: the HashMap from CSV \ntook:" + (endTime1 - startTime1) + " milliseconds");
+            //
+            long startTime2 = System.currentTimeMillis();
+            XClist = MsrmntHashMap.get("THK").get("X");
+            YClist = MsrmntHashMap.get("THK").get("Y");
+            ZVlist = MsrmntHashMap.get("THK").get("Z");
+            long endTime2 = System.currentTimeMillis();
+            System.out.println("part2: Making the X/Y/Z lists \ntook:" + (endTime2 - startTime2) + " milliseconds");
+            //
+            String ContourDatasetStyle = "BufferedImage";
+            String JFreeChartStyle = "XYShapeRenderer";
+            //String[] fileExts = {".png", ".svg"};
+            //String fileExt = ".png";
 
-        //Create new Pixel Data
-        long startTime3 = System.currentTimeMillis();
-		HashMap<String, List<Double>> XYPixelHash = new HashMap<String, List<Double>>();
-        Coords();
-        XYPixelHash.put("X", XClistPixel);
-        XYPixelHash.put("Y", YClistPixel);
-        long endTime3 = System.currentTimeMillis();
-        System.out.println("part2: Creating the Hash Data \ntook:" + (endTime3 - startTime3) + " milliseconds");
-
-        //
-        StringBuilder PlotSaveToDestination = new StringBuilder();
-        StringBuilder Title = new StringBuilder();
-        Title.append("WaferTHK_").append(JFreeChartStyle)
-                .append("_").append(ContourDatasetStyle)
-                .append("_BufferPower:").append(plotPow);
-        String WaferMapTitle = Title.toString();
-        //
-        String filenameTimeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss")
-                .format(new Date());
-        String mainFolder = "C:\\Users\\tpizzone\\OneDrive - Eyelit Inc\\Code\\Java" +
-                "\\TestInterpolations\\GenerateMap\\";
-        String subFolder = "src\\main";
-        //String fileType = ".png";
-        String joinFolder = "\\";
-        PlotSaveToDestination.append(mainFolder).append(joinFolder).append(subFolder)
-                .append(joinFolder);
-        PlotSaveToDestination.append("WaferTHK_").append(JFreeChartStyle)
-                .append("_").append(ContourDatasetStyle)
-                .append("_BufferPower-")
-                .append(plotPow)
-                .append("_").append(filenameTimeStamp);
-        //PlotSaveToDestination.append(fileExt);
-        //
-        long startTime4 = System.currentTimeMillis();
-//        new MetrologyMap_WeightedObserverved_BufferedImage_XYShapeRenderer(WaferMapTitle, PlotSaveToDestination.toString()
-//                , MsrmntHashMap.get("THK"), XYPixelHash, fileExt, plotPow);
-        new MetrologyMap_WeightedObserverved_BufferedImage_XYShapeRenderer_NoColorRangeClass(WaferMapTitle, PlotSaveToDestination.toString()
-                , MsrmntHashMap.get("THK"), XYPixelHash, plotPow);
-        long endTime4 = System.currentTimeMillis();
-        System.out.println("part3: Make the Plot \ntook:" + (endTime4 - startTime4) + " milliseconds");
-        long endTimeAll = System.currentTimeMillis();
-        System.out.println("Total: The XYPlot with XYShape Renderer & BufferedImage-WeightedObservedPoints " +
-                "\ntook:" + (endTimeAll - startTimeAll) + " milliseconds");
+            //Create new Pixel Data
+            long startTime3 = System.currentTimeMillis();
+            HashMap<String, List<Double>> XYPixelHash = new HashMap<String, List<Double>>();
+            Coords();
+            XYPixelHash.put("X", XClistPixel);
+            XYPixelHash.put("Y", YClistPixel);
+            long endTime3 = System.currentTimeMillis();
+            System.out.println("part2: Creating the Hash Data \ntook:" + (endTime3 - startTime3) + " milliseconds");
+            //
+            int plotPower = 6;
+            StringBuilder PlotSaveToDestination = new StringBuilder();
+            StringBuilder Title = new StringBuilder();
+            Title.append("WaferTHK_").append(JFreeChartStyle)
+                    .append("_").append(ContourDatasetStyle)
+                    .append("_BufferPower:").append(plotPower);
+            String WaferMapTitle = Title.toString();
+            //
+            String filenameTimeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss")
+                    .format(new Date());
+            String mainFolder = "GeneratedMaps\\";
+            //
+            File directory = new File(mainFolder);
+            if (!directory.exists()) {
+                directory.mkdir();
+            }
+            //
+            PlotSaveToDestination.append(mainFolder);
+            PlotSaveToDestination.append("WaferTHK_").append(JFreeChartStyle)
+                    .append("_").append(ContourDatasetStyle)
+                    .append("_BufferPower-")
+                    .append(plotPower)
+                    .append("_").append(filenameTimeStamp);
+            //PlotSaveToDestination.append(fileExt);
+            //
+            long startTime4 = System.currentTimeMillis();
+            //        new MetrologyMap_WeightedObserverved_BufferedImage_XYShapeRenderer(WaferMapTitle, PlotSaveToDestination.toString()
+            //                , MsrmntHashMap.get("THK"), XYPixelHash, fileExt, plotPow);
+            new MetrologyMap_WeightedObserverved_BufferedImage_XYShapeRenderer_NoColorRangeClass(WaferMapTitle, PlotSaveToDestination.toString()
+                    , MsrmntHashMap.get("THK"), XYPixelHash, plotPower);
+            long endTime4 = System.currentTimeMillis();
+            System.out.println("part3: Make the Plot \ntook:" + (endTime4 - startTime4) + " milliseconds");
+            long endTimeAll = System.currentTimeMillis();
+            System.out.println("Total: The XYPlot with XYShape Renderer & BufferedImage-WeightedObservedPoints " +
+                    "\ntook:" + (endTimeAll - startTimeAll) + " milliseconds");
+        }
     }
 }

@@ -1,7 +1,6 @@
 import org.apache.batik.dom.GenericDOMImplementation;
 import org.apache.batik.svggen.SVGGraphics2D;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVRecord;
+
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
@@ -28,8 +27,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.GeneralPath;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
@@ -43,8 +42,8 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
 //    protected static String filename2 ="SampleMetrologyTHK_v2.csv";
 //    protected static String filename3 ="SampleMetrologyTHK_v3.csv";
 //    protected static String filename4 ="SampleMetrologyTHK_v4.csv";
-    HashMap<String, List<Double>> XYZ = new HashMap<String, List<Double>>();
-    HashMap<String, List<Double>> XYCircleZ = new HashMap<String, List<Double>>();
+    HashMap<String, List<Double>> XYZ;
+    HashMap<String, List<Double>> XYCircleZ;
     /** name of plot title. */
     protected String chartTitle;
     /** name of file title. */
@@ -95,9 +94,6 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
     protected static double[][] XYCoords;
     protected static double[] XCoordsInterp;
     protected static double[] YCoordsInterp;
-    protected static double[] ZValsInterp;
-    protected static double[] XCoordsInterpFull;
-    protected static double[] YCoordsInterpFull;
     protected static List<Double> ZValsDoubleInterp;
     protected static List<Double> XCoordsDoubleInterpFull;
     protected static List<Double> YCoordsDoubleInterpFull;
@@ -112,7 +108,7 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
      * @param XYZ hashmap values
      * @param ptSq int
      */
-    public InterpolateMetrologyMap_SmileShepardInterpolation2D(String title, String fileTitle, HashMap XYZ, int ptSq, String ext)
+    public InterpolateMetrologyMap_SmileShepardInterpolation2D(String title, String fileTitle, HashMap<String, List<Double>> XYZ, int ptSq, String ext)
             throws IOException {
 
         this.chartTitle = title;
@@ -149,7 +145,7 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
         panel.setPreferredSize(new Dimension(resolution[0], resolution[1]));
     }
     private HashMap<String, List<Double>> filterDataByWafer() {
-        HashMap<String, List<Double>> XYZWafer = new HashMap<String, List<Double>>();
+        HashMap<String, List<Double>> XYZWafer = new HashMap<>();
         List<Double> filteredZValsDoubleInterp = new ArrayList<>();
         List<Double> filteredXCoordsDoubleInterpFull = new ArrayList<>();
         List<Double> filteredYCoordsDoubleInterpFull = new ArrayList<>();
@@ -200,19 +196,19 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
                 return XCoordsList.size();
             }
             public Number getX(int series, int item) {
-                return new Double(getXValue(series, item));
+                return getXValue(series, item);
             }
             public double getXValue(int series, int item) {
                 return XCoordsList.get(item);
             }
             public Number getY(int series, int item) {
-                return new Double(getYValue(series, item));
+                return getYValue(series, item);
             }
             public double getYValue(int series, int item) {
                 return YCoordsList.get(item);
             }
             public Number getZ(int series, int item) {
-                return new Double(getZValue(series, item));
+                return getZValue(series, item);
             }
             public double getZValue(int series, int item) {
                 return ZValsList.get(item);
@@ -378,7 +374,7 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
         } else {
             /*export as svg too?*/
             System.out.println(".SVG - SaveTo\n" + SaveTo);
-            File SaveToFile = new File(new String(SaveTo));
+            File SaveToFile = new File(SaveTo);
             exportChartAsSVG(chart, new Rectangle(0, 0, numX, numY), SaveToFile);
         }
         // Display the chart in a frame
@@ -403,7 +399,7 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
 
         // Write svg file
         OutputStream outputStream = new FileOutputStream(svgFile);
-        Writer out = new OutputStreamWriter(outputStream, "UTF-8");
+        Writer out = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
         svgGenerator.stream(out, true /* use css */);
         outputStream.flush();
         outputStream.close();
@@ -470,7 +466,7 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
     }
     //
     public static HashMap<String, List<Double>> MakeInterpArray() {
-        HashMap<String, List<Double>> XYZHash = new HashMap<String, List<Double>>();
+        HashMap<String, List<Double>> XYZHash = new HashMap<>();
         long startTime2a = System.currentTimeMillis();
         Coords();
         long endTime2a = System.currentTimeMillis();
@@ -643,10 +639,10 @@ public class InterpolateMetrologyMap_SmileShepardInterpolation2D {
         //System.out.println(Arrays.toString(XYCoords));
     }
     public static void main(String[] args) throws IOException {
-        for (String s : filenames) {
+        for (String f : filenames) {
             long startTimeAll = System.currentTimeMillis();
             long startTime1 = System.currentTimeMillis();
-            HashMap<String, HashMap<String, List<Double>>> MsrmntHashMap = MetrologyCSVReader.csvToHashMap(s);
+            HashMap<String, HashMap<String, List<Double>>> MsrmntHashMap = MetrologyCSVReader.csvToHashMap(f);
             long endTime1 = System.currentTimeMillis();
             System.out.println("part1: the HashMap from CSV \ntook:" + (endTime1 - startTime1) + " milliseconds");
             //
